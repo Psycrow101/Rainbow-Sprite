@@ -224,6 +224,7 @@ int main(int args_n, char **args)
 	char additionName[] = "_new.spr";
 	char *newFileName = malloc(strlen(args[1]) + strlen(additionName) - 3);
 	strncpy(newFileName, args[1], strlen(args[1]) - 4);
+	newFileName[strlen(args[1]) - 4] = '\0';
 	strcat(newFileName, additionName);
 
 	fp = fopen(newFileName, "wb");
