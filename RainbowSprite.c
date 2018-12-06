@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 enum SPRTYPE
 {
 	VP_PARALLEL_UPRIGHT,
@@ -19,7 +20,7 @@ enum SPRTEXTFORMAT
 	SPR_ALPHTEST
 };
 
-typedef struct sprheader {
+typedef struct {
 	unsigned spriteType;
 	unsigned textureFormat;
 	float boundingRadius;
@@ -28,21 +29,21 @@ typedef struct sprheader {
 	unsigned numFrames;
 	float beamLength;
 	unsigned synchronizationType;
-} sprheader;
+} SPRHEADER;
 
-typedef struct frameheader {
+typedef struct {
 	unsigned frameGroup;
 	int frameOriginX;
 	int frameOriginY;
 	unsigned frameWidth;
 	unsigned frameHeight;
-} frameheader;
+} FRAMEHEADER;
 
-typedef struct color {
+typedef struct {
 	unsigned char r;
 	unsigned char g;
 	unsigned char b;
-} color;
+} COLOR;
 
 int main(int args_n, char **args)
 {
@@ -65,7 +66,7 @@ int main(int args_n, char **args)
 	unsigned fileId;
 	fread(&fileId, 1, 4, fp);
 
-	if (fileId != 1347634249)
+	if (fileId != 0x50534449)
 	{
 		fclose(fp);
 		printf("Invalid fileId\n");
@@ -82,7 +83,7 @@ int main(int args_n, char **args)
 		return 1;
 	}
 
-	sprheader sprHdr;
+	SPRHEADER sprHdr;
 	fread(&sprHdr, 1, sizeof(sprHdr), fp);
 
 	int isIgnoreTransColor;
@@ -106,8 +107,8 @@ int main(int args_n, char **args)
 	unsigned short palSize;
 	fread(&palSize, 1, 2, fp);
 
-	color *pal = (color *)malloc(sizeof(color) * palSize);
-	color transColor;
+	COLOR *pal = (COLOR *)calloc(palSize, sizeof(COLOR));
+	COLOR transColor;
 
 	if (isIgnoreTransColor)
 	{
@@ -138,15 +139,9 @@ int main(int args_n, char **args)
 		printf("Invalid color row value\nMust be less 255 and more 2\n");
 		return 1;
 	}
-	if (colorRowSize > 255 || colorRowSize < 2)
-	{
-		fclose(fp);
-		printf("Invalid color row value\nMust be less 255 and more 2\n");
-		return 1;
-	}
 
 	unsigned char *fixIndexes = (unsigned char *)malloc(palSize);
-	unsigned char *colorRowBlocks = (unsigned char *)calloc(colorRowSize, 1);
+	unsigned char *colorRowBlocks = (unsigned char *)malloc(colorRowSize);
 	unsigned *koefColors = (unsigned *)calloc(colorRowSize, sizeof(unsigned));
 
 	int colorRowNum = (isIgnoreTransColor ? 255 : 256) / colorRowSize;
@@ -183,7 +178,7 @@ int main(int args_n, char **args)
 	free(pal);
 	free(colorRowBlocks);
 
-	frameheader frameHdr;
+	FRAMEHEADER frameHdr;
 	fread(&frameHdr, 1, sizeof(frameHdr), fp);
 
 	unsigned char *frame = (unsigned char *)malloc(frameHdr.frameWidth * frameHdr.frameHeight);
@@ -191,14 +186,19 @@ int main(int args_n, char **args)
 
 	fclose(fp);
 
-	unsigned short keysNum = 2;
-	color colorKeys[2];
+	unsigned short keysNum = args_n -  3;
+	COLOR *colorKeys = (COLOR *)calloc(keysNum, sizeof(COLOR));
+
 	colorKeys[0].r = 255;
 	colorKeys[0].g = 0;
 	colorKeys[0].b = 0;
+
 	colorKeys[1].r = 0;
 	colorKeys[1].g = 0;
 	colorKeys[1].b = 255;
+
+	for (i = 3, k = 0; i < args_n; i++, k++)
+		sscanf(args[i], "%d %d %d", &colorKeys[k].r, &colorKeys[k].g, &colorKeys[k].b);
 
 	unsigned char colorGradientSize = keysNum > 2 ? colorRowNum / keysNum : colorRowNum;
 	unsigned frameNum = colorGradientSize * keysNum - keysNum;
@@ -213,10 +213,11 @@ int main(int args_n, char **args)
 		return 1;
 	}
 
-	char newFileName[30];
 	char additionName[] = "_new.spr";
+	char *newFileName = malloc(strlen(args[1]) + strlen(additionName) - 3);
+
 	strcpy(newFileName, args[1]);
-	newFileName[strlen(newFileName) - 4] = '\0';
+	newFileName[strlen(args[1])  - 4] = '\0';
 	strcat(newFileName, additionName);
 
 	fp = fopen(newFileName, "wb");
@@ -240,7 +241,7 @@ int main(int args_n, char **args)
 	palSize = 256;
 	fwrite(&palSize, 1, 2, fp);
 
-	color tempColor;
+	COLOR tempColor;
 
 	unsigned short colorsNum = 0;
 
@@ -250,7 +251,7 @@ int main(int args_n, char **args)
 		short gStep = (colorKeys[i + 1].g - colorKeys[i].g) / (colorGradientSize - 1);
 		short bStep = (colorKeys[i + 1].b - colorKeys[i].b) / (colorGradientSize - 1);
 
-		for (j = (!i ? 0 : 1); j < colorGradientSize - 1; j++)
+		for (j = !!i; j < colorGradientSize - 1; j++)
 		{
 			for (k = 0; k < colorRowSize; k++)
 			{
