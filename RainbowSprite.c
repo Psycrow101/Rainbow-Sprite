@@ -45,6 +45,22 @@ typedef struct {
 	unsigned char b;
 } COLOR;
 
+
+void write_indices(FILE *fp, unsigned char *frame, int frameId,
+	unsigned char *fixIndexes, int frameSize, int colorRowSize, int isIgnoreTransColor)
+{
+	unsigned char tempIndex;
+
+	for (int i = 0; i < frameSize; i++)
+	{
+		if (isIgnoreTransColor && fixIndexes[frame[i]] == 255)
+			tempIndex = 255;
+		else
+			tempIndex = fixIndexes[frame[i]] + frameId * colorRowSize;
+		fwrite(&tempIndex, 1, 1, fp);
+	}
+}
+
 int main(int args_n, char **args)
 {
 	if (args_n < 3)
@@ -144,7 +160,7 @@ int main(int args_n, char **args)
 	unsigned char *colorRowBlocks = (unsigned char *)malloc(colorRowSize);
 	unsigned *koefColors = (unsigned *)calloc(colorRowSize, sizeof(unsigned));
 
-	int colorRowNum = (isIgnoreTransColor ? 255 : 256) / colorRowSize;
+	int colorRowNum = (256 - isIgnoreTransColor) / colorRowSize;
 
 	for (i = 0; i < palSize; i++)
 	{
@@ -189,21 +205,13 @@ int main(int args_n, char **args)
 	unsigned short keysNum = args_n -  3;
 	COLOR *colorKeys = (COLOR *)calloc(keysNum, sizeof(COLOR));
 
-	colorKeys[0].r = 255;
-	colorKeys[0].g = 0;
-	colorKeys[0].b = 0;
-
-	colorKeys[1].r = 0;
-	colorKeys[1].g = 0;
-	colorKeys[1].b = 255;
-
 	for (i = 3, k = 0; i < args_n; i++, k++)
 		sscanf(args[i], "%d %d %d", &colorKeys[k].r, &colorKeys[k].g, &colorKeys[k].b);
 
 	unsigned char colorGradientSize = keysNum > 2 ? colorRowNum / keysNum : colorRowNum;
 	unsigned frameNum = colorGradientSize * keysNum - keysNum;
 
-	if (frameNum > (unsigned)(isIgnoreTransColor ? 255 : 256) || frameNum < 1)
+	if (frameNum > (unsigned)(256 - isIgnoreTransColor) || frameNum < 1)
 	{
 		fclose(fp);
 		printf("Try to set a smaller color row value or color keys num...\n");
@@ -215,9 +223,7 @@ int main(int args_n, char **args)
 
 	char additionName[] = "_new.spr";
 	char *newFileName = malloc(strlen(args[1]) + strlen(additionName) - 3);
-
-	strcpy(newFileName, args[1]);
-	newFileName[strlen(args[1])  - 4] = '\0';
+	strncpy(newFileName, args[1], strlen(args[1]) - 4);
 	strcat(newFileName, additionName);
 
 	fp = fopen(newFileName, "wb");
@@ -299,22 +305,13 @@ int main(int args_n, char **args)
 	for (i = colorsNum; i < 256; i++)
 		fwrite(&tempColor, 1, 3, fp);
 	
-	unsigned char tempIndex;
-
 	if (keysNum > 2)
 	{
 		for (i = 0; i < frameNum; i++)
 		{
 			fwrite(&frameHdr, 1, sizeof(frameHdr), fp);
-
-			for (j = 0; j < frameHdr.frameWidth * frameHdr.frameHeight; j++)
-			{
-				if (isIgnoreTransColor && fixIndexes[frame[j]] == 255)
-					tempIndex = 255;
-				else
-					tempIndex = fixIndexes[frame[j]] + i * colorRowSize;
-				fwrite(&tempIndex, 1, 1, fp);
-			}
+			write_indices(fp, frame, i, fixIndexes,
+				frameHdr.frameWidth * frameHdr.frameHeight, colorRowSize, isIgnoreTransColor);
 		}
 	}
 	else
@@ -322,29 +319,15 @@ int main(int args_n, char **args)
 		for (i = 0; i < colorGradientSize; i++)
 		{
 			fwrite(&frameHdr, 1, sizeof(frameHdr), fp);
-
-			for (j = 0; j < frameHdr.frameWidth * frameHdr.frameHeight; j++)
-			{
-				if (isIgnoreTransColor && fixIndexes[frame[j]] == 255)
-					tempIndex = 255;
-				else
-					tempIndex = fixIndexes[frame[j]] + i * colorRowSize;
-				fwrite(&tempIndex, 1, 1, fp);
-			}
+			write_indices(fp, frame, i, fixIndexes,
+				frameHdr.frameWidth * frameHdr.frameHeight, colorRowSize, isIgnoreTransColor);
 		}
 
 		for (i = colorGradientSize - 1; i > 0; i--)
 		{
 			fwrite(&frameHdr, 1, sizeof(frameHdr), fp);
-
-			for (j = 0; j < frameHdr.frameWidth * frameHdr.frameHeight; j++)
-			{
-				if (isIgnoreTransColor && fixIndexes[frame[j]] == 255)
-					tempIndex = 255;
-				else
-					tempIndex = fixIndexes[frame[j]] + i * colorRowSize;
-				fwrite(&tempIndex, 1, 1, fp);
-			}
+			write_indices(fp, frame, i, fixIndexes,
+				frameHdr.frameWidth * frameHdr.frameHeight, colorRowSize, isIgnoreTransColor);
 		}
 	}
 
