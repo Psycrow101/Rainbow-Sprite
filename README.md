@@ -18,5 +18,5 @@ the number of received frames.
 
 ## Examples
 
-RainbowSprite my_sprite1.spr 8 "255 0 255" "128 0 0"
-RainbowSprite my_sprite2.spr 5 "255 0 0" "0 0 64" "0 255 0"
+* *RainbowSprite my_sprite1.spr 8 "255 0 255" "128 0 0"*
+* *RainbowSprite my_sprite2.spr 5 "255 0 0" "0 0 64" "0 255 0"*
