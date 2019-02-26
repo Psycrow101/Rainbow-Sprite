@@ -1,6 +1,6 @@
-# Raibow Sprite
+# Rainbow Sprite
 
-**Raibow Sprite** is a simple console application that allows you to animate
+**Rainbow Sprite** is a simple console application that allows you to animate
 the Half-Life sprite, adding the effect of color transfusion.
 
 [![Video tutorial](http://img.youtube.com/vi/maYiBrBojwk/0.jpg)](http://www.youtube.com/watch?v=maYiBrBojwk)
